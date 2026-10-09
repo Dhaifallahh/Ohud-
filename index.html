@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>لوحة مؤشرات التحصيل الدراسي – ثانوية أحد</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{
+  --forest:#1F5F4A; --deep:#133D30; --gold:#B08D57; --mint:#E6F0EC; --paper:#F4F7F5;
+  --card:#FFFFFF; --ink:#1C2A25; --muted:#5E6F68; --line:#D6E2DC;
+  --bad:#C0392B; --warn:#E67E22; --ok:#2E7D5B;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1A16; --card:#16241F; --ink:#E7EFEB; --muted:#9DB1A8; --line:#29403A; --mint:#1D3A31;
+  }
+}
+:root[data-theme="dark"]{ --paper:#0F1A16; --card:#16241F; --ink:#E7EFEB; --muted:#9DB1A8; --line:#29403A; --mint:#1D3A31; }
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Sans Arabic",Tahoma,"Segoe UI",Arial,sans-serif;font-size:15px;line-height:1.55}
+header.top{background:var(--deep);color:#fff;display:flex;align-items:center;gap:18px;padding:14px 22px;flex-wrap:wrap}
+.crest{width:42px;height:42px;border:2px solid var(--gold);display:grid;place-items:center;font-weight:700;color:var(--gold);font-size:20px;border-radius:4px}
+header h1{font-size:19px;margin:0;font-weight:700}
+header .sub{font-size:13px;opacity:.8}
+nav.pages{margin-inline-start:auto;display:flex;gap:4px;flex-wrap:wrap}
+nav.pages button{background:transparent;color:#d9e6e0;border:0;border-bottom:3px solid transparent;padding:8px 12px;font:inherit;font-size:14px;cursor:pointer}
+nav.pages button[aria-selected="true"]{color:#fff;border-bottom-color:var(--gold);font-weight:600}
+nav.pages button:focus-visible,.chip:focus-visible,select:focus-visible,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.wrap{display:grid;grid-template-columns:250px 1fr;gap:18px;padding:18px 22px;max-width:1500px;margin:0 auto}
+aside.slicers{background:var(--card);border:1px solid var(--line);padding:16px;align-self:start;position:sticky;top:12px}
+aside h2{font-size:14px;margin:0 0 12px;color:var(--forest)}
+.sl{margin-bottom:16px}
+.sl label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:6px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:transparent;color:var(--ink);padding:5px 10px;font:inherit;font-size:13px;cursor:pointer;border-radius:3px}
+.chip[aria-pressed="true"]{background:var(--forest);border-color:var(--forest);color:#fff}
+select,input[type=number]{width:100%;padding:7px 8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:inherit;font-size:14px;border-radius:3px}
+.reset{width:100%;margin-top:4px;background:var(--mint);color:var(--forest);border:0;padding:8px;font:inherit;font-weight:600;cursor:pointer;border-radius:3px}
+.note{font-size:12px;color:var(--muted)}
+main{min-width:0}
+.page{display:none}.page.on{display:block}
+.kpis{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-top:4px solid var(--forest);padding:12px 14px}
+.kpi .v{font-size:28px;font-weight:700;line-height:1.2}
+.kpi .l{font-size:13px;color:var(--muted)}
+.kpi.alert{border-top-color:var(--bad)} .kpi.alert .v{color:var(--bad)}
+.kpi.gold{border-top-color:var(--gold)}
+.grid2{display:grid;grid-template-columns:1.2fr 1fr;gap:16px;margin-bottom:16px}
+.grid2.even{grid-template-columns:1fr 1fr}
+.panel{background:var(--card);border:1px solid var(--line);padding:14px 16px;min-width:0}
+.panel h3{margin:0 0 4px;font-size:15px;color:var(--forest)}
+.panel .hint{margin:0 0 10px;font-size:12.5px;color:var(--muted)}
+.cv{position:relative;height:320px}
+.cv.tall{height:420px}
+.scroll{overflow-x:auto}
+table.hm{border-collapse:collapse;width:100%;font-size:13px;min-width:640px}
+table.hm th,table.hm td{border:1px solid var(--line);padding:6px 4px;text-align:center}
+table.hm th{background:var(--forest);color:#fff;font-weight:600}
+table.hm td.name{text-align:start;background:var(--mint);font-weight:600;white-space:nowrap}
+table.hm td.cell{cursor:pointer}
+table.hm tr.sel td.name{outline:2px solid var(--gold)}
+.legend{display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}
+.legend i{display:inline-block;width:14px;height:10px;margin-inline-end:4px;vertical-align:middle}
+table.list{border-collapse:collapse;width:100%;font-size:13.5px}
+table.list th,table.list td{border-bottom:1px solid var(--line);padding:7px 6px;text-align:start}
+table.list th{color:var(--muted);font-weight:600;font-size:12.5px}
+.bar{height:8px;background:var(--mint);position:relative}
+.bar b{position:absolute;inset-inline-start:0;top:0;bottom:0;background:var(--bad)}
+.bullet{margin:14px 0}
+.bullet .t{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:5px;gap:10px}
+.bullet .track{position:relative;height:16px;background:var(--mint)}
+.bullet .fill{position:absolute;inset-inline-start:0;top:3px;bottom:3px;background:var(--forest)}
+.bullet .tgt{position:absolute;top:-3px;bottom:-3px;width:3px;background:var(--gold)}
+.bullet .self{position:absolute;top:0;bottom:0;width:2px;background:var(--ink);opacity:.55}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600}
+.pill.ok{background:#D9EFE4;color:#1E6B4A}.pill.mid{background:#FCEBD5;color:#9A5300}.pill.no{background:#F8D9D5;color:#A12B1E}.pill.na{background:var(--mint);color:var(--muted)}
+.cmp{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.big{font-size:40px;font-weight:700;color:var(--forest);line-height:1.1}
+.vs{font-size:13px;color:var(--muted)}
+.rank{margin-top:10px}
+.rank .row{display:flex;justify-content:space-between;font-size:13px;margin:6px 0 3px}
+.rank .track{height:10px;background:var(--mint);position:relative}
+.rank .track b{position:absolute;inset-inline-start:0;top:0;bottom:0;background:var(--gold)}
+table.impact{border-collapse:collapse;width:100%;font-size:13.5px;min-width:720px}
+table.impact th,table.impact td{border:1px solid var(--line);padding:6px;text-align:center}
+table.impact th{background:var(--forest);color:#fff;font-weight:600}
+table.impact td:first-child{text-align:start;background:var(--mint);font-weight:600}
+table.impact input{width:90px;text-align:center}
+footer{max-width:1500px;margin:0 auto;padding:4px 22px 24px;font-size:12px;color:var(--muted)}
+@media (max-width:1100px){.kpis{grid-template-columns:repeat(3,minmax(0,1fr))}.grid2,.grid2.even,.cmp{grid-template-columns:1fr}}
+@media (max-width:820px){.wrap{grid-template-columns:1fr;padding:12px}aside.slicers{position:static}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}nav.pages{margin-inline-start:0;width:100%}header.top{padding:12px}}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="crest">أ</div>
+  <div>
+    <h1>لوحة مؤشرات التحصيل الدراسي</h1>
+    <div class="sub">ثانوية أحد – مسارات · الفصل الدراسي الأول 1448-1447هـ</div>
+  </div>
+  <nav class="pages" role="tablist">
+    <button role="tab" aria-selected="true" data-p="p1">النتائج الدراسية</button>
+    <button role="tab" aria-selected="false" data-p="p2">القدرات والتحصيلي</button>
+    <button role="tab" aria-selected="false" data-p="p3">المؤشرات والمستهدفات</button>
+    <button role="tab" aria-selected="false" data-p="p4">قياس الأثر</button>
+  </nav>
+</header>
+
+<div class="wrap">
+  <aside class="slicers" id="slicers">
+    <h2>عوامل التصفية</h2>
+    <div class="sl"><label>الصف والمسار</label><div class="chips" id="fGrade"></div></div>
+    <div class="sl"><label for="fSec">الشعبة</label><select id="fSec"></select></div>
+    <div class="sl"><label>المواد</label><div class="chips" id="fGroup"></div></div>
+    <div class="sl"><label for="fSubj">مادة محددة</label><select id="fSubj"></select></div>
+    <button class="reset" id="reset">إلغاء التصفية</button>
+    <p class="note">اضغط على أي مادة في الرسم أو خلية في الخريطة الحرارية لتصفية اللوحة كاملة.</p>
+  </aside>
+
+  <main>
+    <!-- PAGE 1 -->
+    <section class="page on" id="p1">
+      <div class="kpis" id="kpis"></div>
+      <div class="grid2">
+        <div class="panel"><h3>نسبة التعثر حسب المادة</h3><p class="hint">نسبة «راسب + ضعيف» من نتائج المادة – اضغط على المادة للتصفية</p><div class="cv"><canvas id="cStr"></canvas></div></div>
+        <div class="panel"><h3>توزيع التقديرات</h3><p class="hint" id="distHint">جميع النتائج ضمن التصفية الحالية</p><div class="cv"><canvas id="cDist"></canvas></div></div>
+      </div>
+      <div class="panel" style="margin-bottom:16px"><h3>توزيع التقديرات حسب المادة</h3><p class="hint">نسبة كل تقدير داخل المادة</p><div class="cv tall"><canvas id="cStack"></canvas></div></div>
+      <div class="grid2">
+        <div class="panel"><h3>خريطة التعثر: الشعبة × المادة</h3><p class="hint">اضغط على الخلية لعرض الشعبة والمادة</p><div class="scroll"><table class="hm" id="hm"></table></div>
+          <div class="legend"><span><i style="background:#fff;border:1px solid #ccc"></i>0</span><span><i style="background:#FDF3D1"></i>حتى 10%</span><span><i style="background:#F9DC8B"></i>10–20%</span><span><i style="background:#F2A65A"></i>20–30%</span><span><i style="background:#D9534F"></i>أكثر من 30%</span></div></div>
+        <div class="panel"><h3>الشعب الأعلى تعثرًا</h3><p class="hint">ترتيب الشعب ضمن التصفية الحالية</p><table class="list" id="topSec"></table></div>
+      </div>
+    </section>
+
+    <!-- PAGE 2 -->
+    <section class="page" id="p2">
+      <div class="cmp" style="margin-bottom:16px">
+        <div class="panel"><h3>التحصيلي – المسار العلمي</h3><p class="hint">391 مختبرًا · بطاقة 1447هـ</p>
+          <div class="big">67</div><div class="vs">متوسط المدرسة · المملكة 62.39 · التغير عن العام السابق ▼ 0.1%</div>
+          <div class="rank"><div class="row"><span>الترتيب على المملكة</span><span>أعلى من 84.07% (350 من 2192)</span></div><div class="track"><b style="width:84.07%"></b></div>
+          <div class="row"><span>الترتيب على إدارة التعليم</span><span>أعلى من 84.62% (23 من 144)</span></div><div class="track"><b style="width:84.62%"></b></div></div>
+        </div>
+        <div class="panel"><h3>القدرات العامة – المسار العلمي</h3><p class="hint">389 مختبرًا · بطاقة 1447هـ</p>
+          <div class="big">68.5</div><div class="vs">متوسط المدرسة · المملكة 65.72 · التغير عن العام السابق ▼ 0.1%</div>
+          <div class="rank"><div class="row"><span>الترتيب على المملكة</span><span>أعلى من 76.62% (516 من 2204)</span></div><div class="track"><b style="width:76.62%"></b></div>
+          <div class="row"><span>الترتيب على إدارة التعليم</span><span>أعلى من 80.42% (29 من 144)</span></div><div class="track"><b style="width:80.42%"></b></div></div>
+        </div>
+      </div>
+      <div class="grid2 even">
+        <div class="panel"><h3>توزيع الطلاب على مستويات الأداء: الحالي والمستهدف</h3><p class="hint">المستهدفات مقترحة في خطة رفع التحصيل</p><div class="cv"><canvas id="cLv"></canvas></div></div>
+        <div class="panel"><h3>متوسط المدرسة مقابل المملكة والمستهدف</h3><p class="hint">من 100</p><div class="cv"><canvas id="cAvg"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- PAGE 3 -->
+    <section class="page" id="p3">
+      <div class="grid2 even">
+        <div class="panel"><h3>مؤشرات التقويم المدرسي مقابل المستهدف</h3>
+          <p class="hint">الشريط الأخضر: التقويم الخارجي 2025م · الخط الداكن: التقويم الذاتي · الخط الذهبي: المستهدف</p>
+          <div id="bullets"></div></div>
+        <div class="panel"><h3>مستهدفات خطة رفع التحصيل</h3><p class="hint">نسبة التعثر الحالية مقابل المستهدف (الأقل أفضل)</p><div class="cv tall"><canvas id="cTgt"></canvas></div></div>
+      </div>
+    </section>
+
+    <!-- PAGE 4 -->
+    <section class="page" id="p4">
+      <div class="panel">
+        <h3>لوحة قياس أثر خطة رفع التحصيل</h3>
+        <p class="hint">أدخل النتيجة بعد التنفيذ، وتُحسب نسبة التغير ومدى تحقق المستهدف تلقائيًا. تُحفظ المدخلات في هذا المتصفح فقط.</p>
+        <div class="scroll"><table class="impact" id="impact"></table></div>
+        <p class="note" style="margin-top:10px">نسبة التغير = (النتيجة بعد التنفيذ − خط الأساس) ÷ خط الأساس × 100. في مؤشرات التعثر يكون الانخفاض هو التحسن.</p>
+      </div>
+    </section>
+  </main>
+</div>
+<footer>المصادر: جداول نتائج الفصل الأول (نظام نور) · بطاقة القدرات والتحصيلي 1447هـ · تقرير التقويم المدرسي الخارجي 2025م والتقويم الذاتي · الخطة التشغيلية 1447هـ. إعداد: لجنة رفع مستوى التحصيل الدراسي.</footer>
+
+<script>
+const RAW = [[1,"السنة المشتركة",1,27,"أحياء",0,0,2,4,12,9],[1,"السنة المشتركة",1,27,"إنجليزي",0,1,4,12,4,6],[1,"السنة المشتركة",1,27,"التربية الصحية والبدنية",0,0,0,0,0,27],[1,"السنة المشتركة",1,27,"الناقد",0,0,0,0,1,26],[1,"السنة المشتركة",1,27,"ت رقمية",0,0,0,0,0,27],[1,"السنة المشتركة",1,27,"رياضيات",0,0,3,7,8,9],[1,"السنة المشتركة",1,27,"قرآن/تفسير",0,0,0,0,0,27],[1,"السنة المشتركة",1,27,"ك لغوية",0,0,2,5,8,12],[1,"السنة المشتركة",1,27,"كيمياء",0,0,0,1,11,15],[1,"السنة المشتركة",2,29,"أحياء",0,0,0,3,3,23],[1,"السنة المشتركة",2,29,"إنجليزي",0,0,0,0,1,28],[1,"السنة المشتركة",2,29,"التربية الصحية والبدنية",0,0,0,0,0,29],[1,"السنة المشتركة",2,29,"الناقد",0,0,0,0,0,29],[1,"السنة المشتركة",2,29,"ت رقمية",0,0,0,0,0,29],[1,"السنة المشتركة",2,29,"رياضيات",0,0,0,1,1,27],[1,"السنة المشتركة",2,29,"قرآن/تفسير",0,0,0,0,0,29],[1,"السنة المشتركة",2,29,"ك لغوية",0,0,1,0,8,20],[1,"السنة المشتركة",2,29,"كيمياء",0,0,0,0,0,29],[1,"السنة المشتركة",3,28,"أحياء",0,0,1,5,10,12],[1,"السنة المشتركة",3,28,"إنجليزي",0,1,2,6,6,13],[1,"السنة المشتركة",3,28,"التربية الصحية والبدنية",0,0,0,0,0,28],[1,"السنة المشتركة",3,28,"الناقد",0,0,0,1,2,25],[1,"السنة المشتركة",3,28,"ت رقمية",0,0,0,0,0,28],[1,"السنة المشتركة",3,28,"رياضيات",0,1,1,6,5,15],[1,"السنة المشتركة",3,28,"قرآن/تفسير",0,0,0,1,5,22],[1,"السنة المشتركة",3,28,"ك لغوية",0,0,1,4,6,17],[1,"السنة المشتركة",3,28,"كيمياء",0,0,0,2,6,20],[1,"السنة المشتركة",4,26,"أحياء",0,8,2,4,7,5],[1,"السنة المشتركة",4,26,"إنجليزي",1,3,9,5,4,4],[1,"السنة المشتركة",4,26,"التربية الصحية والبدنية",0,0,0,0,0,26],[1,"السنة المشتركة",4,26,"الناقد",0,0,0,0,0,26],[1,"السنة المشتركة",4,26,"ت رقمية",0,0,0,0,5,21],[1,"السنة المشتركة",4,26,"رياضيات",1,3,7,3,7,5],[1,"السنة المشتركة",4,26,"قرآن/تفسير",0,0,0,1,7,18],[1,"السنة المشتركة",4,26,"ك لغوية",1,3,3,5,10,4],[1,"السنة المشتركة",4,26,"كيمياء",1,0,4,11,6,4],[1,"السنة المشتركة",5,23,"أحياء",0,0,2,7,5,9],[1,"السنة المشتركة",5,23,"إنجليزي",0,3,6,4,2,8],[1,"السنة المشتركة",5,23,"التربية الصحية والبدنية",0,0,0,0,0,23],[1,"السنة المشتركة",5,23,"الناقد",0,0,0,0,0,23],[1,"السنة المشتركة",5,23,"ت رقمية",0,0,0,0,1,22],[1,"السنة المشتركة",5,23,"رياضيات",0,9,5,2,3,4],[1,"السنة المشتركة",5,23,"قرآن/تفسير",0,0,0,1,12,10],[1,"السنة المشتركة",5,23,"ك لغوية",0,0,0,2,11,10],[1,"السنة المشتركة",5,23,"كيمياء",0,0,0,1,11,11],[1,"السنة المشتركة",6,27,"أحياء",0,2,2,4,6,13],[1,"السنة المشتركة",6,27,"إنجليزي",0,5,4,3,1,14],[1,"السنة المشتركة",6,27,"التربية الصحية والبدنية",0,0,0,0,0,27],[1,"السنة المشتركة",6,27,"الناقد",0,0,0,0,0,27],[1,"السنة المشتركة",6,27,"ت رقمية",0,0,0,0,2,25],[1,"السنة المشتركة",6,27,"رياضيات",0,9,5,5,3,5],[1,"السنة المشتركة",6,27,"قرآن/تفسير",0,0,4,3,3,17],[1,"السنة المشتركة",6,27,"ك لغوية",0,0,0,0,8,19],[1,"السنة المشتركة",6,27,"كيمياء",0,0,1,8,6,12],[1,"السنة المشتركة",7,24,"أحياء",0,1,1,5,6,11],[1,"السنة المشتركة",7,24,"إنجليزي",0,4,4,1,6,9],[1,"السنة المشتركة",7,24,"التربية الصحية والبدنية",0,0,0,0,0,24],[1,"السنة المشتركة",7,24,"الناقد",0,0,0,0,0,24],[1,"السنة المشتركة",7,24,"ت رقمية",0,0,0,2,9,13],[1,"السنة المشتركة",7,24,"رياضيات",0,10,4,3,4,3],[1,"السنة المشتركة",7,24,"قرآن/تفسير",0,1,3,2,4,14],[1,"السنة المشتركة",7,24,"ك لغوية",0,0,0,1,10,13],[1,"السنة المشتركة",7,24,"كيمياء",0,0,2,2,8,12],[2,"المسار العام",1,34,"أحياء",1,0,1,1,17,14],[2,"المسار العام",1,34,"إنجليزي",0,1,1,5,15,12],[2,"المسار العام",1,34,"النشاط",0,0,0,0,0,34],[2,"المسار العام",1,34,"تاريخ",0,0,0,0,0,34],[2,"المسار العام",1,34,"رياضيات",0,1,4,9,10,10],[2,"المسار العام",1,34,"فيزياء",1,0,3,4,10,16],[2,"المسار العام",1,34,"ك لغوية",0,0,0,1,9,24],[2,"المسار العام",1,34,"كيمياء",0,0,0,1,4,29],[2,"المسار العام",2,33,"أحياء",0,1,1,0,0,31],[2,"المسار العام",2,33,"إنجليزي",0,0,1,0,5,27],[2,"المسار العام",2,33,"النشاط",0,0,0,0,0,33],[2,"المسار العام",2,33,"تاريخ",0,0,0,0,0,33],[2,"المسار العام",2,33,"رياضيات",0,0,1,0,0,32],[2,"المسار العام",2,33,"فيزياء",0,0,0,1,0,32],[2,"المسار العام",2,33,"ك لغوية",0,0,0,1,0,32],[2,"المسار العام",2,33,"كيمياء",0,0,0,0,1,32],[2,"المسار العام",3,33,"أحياء",1,0,3,2,4,23],[2,"المسار العام",3,33,"إنجليزي",0,2,3,7,7,14],[2,"المسار العام",3,33,"النشاط",0,0,0,0,0,33],[2,"المسار العام",3,33,"تاريخ",0,0,0,0,0,33],[2,"المسار العام",3,33,"رياضيات",0,0,2,2,9,20],[2,"المسار العام",3,33,"فيزياء",0,0,0,6,20,7],[2,"المسار العام",3,33,"ك لغوية",0,0,0,0,3,30],[2,"المسار العام",3,33,"كيمياء",0,0,1,0,4,28],[2,"المسار العام",4,30,"أحياء",0,1,3,7,3,16],[2,"المسار العام",4,30,"إنجليزي",1,9,1,4,4,11],[2,"المسار العام",4,30,"النشاط",0,0,0,0,0,30],[2,"المسار العام",4,30,"تاريخ",0,0,0,0,0,30],[2,"المسار العام",4,30,"رياضيات",0,0,6,10,9,5],[2,"المسار العام",4,30,"فيزياء",1,8,8,3,8,2],[2,"المسار العام",4,30,"ك لغوية",0,0,0,1,8,21],[2,"المسار العام",4,30,"كيمياء",0,6,11,11,1,1],[2,"المسار العام",5,30,"أحياء",0,0,3,6,9,12],[2,"المسار العام",5,30,"إنجليزي",1,2,5,5,6,11],[2,"المسار العام",5,30,"النشاط",0,0,0,0,0,30],[2,"المسار العام",5,30,"تاريخ",0,0,0,0,0,30],[2,"المسار العام",5,30,"رياضيات",0,0,2,1,14,13],[2,"المسار العام",5,30,"فيزياء",0,7,3,7,8,5],[2,"المسار العام",5,30,"ك لغوية",0,0,0,1,6,23],[2,"المسار العام",5,30,"كيمياء",0,11,12,5,2,0],[2,"مسار الحاسب والهندسة",6,16,"أحياء",1,0,0,1,4,10],[2,"مسار الحاسب والهندسة",6,16,"إنجليزي",1,0,0,2,3,10],[2,"مسار الحاسب والهندسة",6,16,"النشاط",0,0,0,0,0,16],[2,"مسار الحاسب والهندسة",6,16,"رياضيات",1,0,1,4,5,5],[2,"مسار الحاسب والهندسة",6,16,"فيزياء",1,0,1,9,3,2],[2,"مسار الحاسب والهندسة",6,16,"ك لغوية",1,0,0,1,9,5],[2,"مسار الحاسب والهندسة",6,16,"كيمياء",1,0,1,9,5,0],[2,"مسار الحاسب والهندسة",6,16,"هندسة",1,0,0,3,6,6],[3,"المسار العام",1,0,"إبداعية",0,0,0,0,0,0],[3,"المسار العام",1,28,"إنجليزي",0,0,0,0,1,27],[3,"المسار العام",1,28,"التربية الصحية والبدنية",0,0,0,0,0,28],[3,"المسار العام",1,28,"النشاط",0,0,0,0,0,28],[3,"المسار العام",1,28,"بحث",0,0,0,0,0,28],[3,"المسار العام",1,28,"ت رقمية",0,0,0,0,1,27],[3,"المسار العام",1,28,"ت مستدامة",0,0,0,0,0,28],[3,"المسار العام",1,28,"رياضيات",0,0,0,8,16,4],[3,"المسار العام",1,28,"ع الأرض",0,0,1,7,9,11],[3,"المسار العام",1,28,"فيزياء",0,2,9,8,4,5],[3,"المسار العام",1,28,"كيمياء",0,8,5,4,2,9],[3,"المسار العام",2,34,"إبداعية",0,0,0,0,0,34],[3,"المسار العام",2,34,"إنجليزي",1,1,0,0,4,28],[3,"المسار العام",2,34,"التربية الصحية والبدنية",0,0,0,0,1,33],[3,"المسار العام",2,34,"النشاط",0,0,0,0,0,34],[3,"المسار العام",2,34,"بحث",0,0,0,0,0,34],[3,"المسار العام",2,34,"ت رقمية",0,0,0,0,2,32],[3,"المسار العام",2,0,"ت مستدامة",0,0,0,0,0,0],[3,"المسار العام",2,34,"رياضيات",0,0,0,1,2,31],[3,"المسار العام",2,34,"ع الأرض",0,0,1,0,0,33],[3,"المسار العام",2,34,"فيزياء",0,0,0,1,0,33],[3,"المسار العام",2,34,"كيمياء",1,0,0,0,0,33],[3,"المسار العام",3,30,"إبداعية",0,0,0,0,0,30],[3,"المسار العام",3,30,"إنجليزي",0,10,5,3,3,9],[3,"المسار العام",3,30,"التربية الصحية والبدنية",0,0,0,0,0,30],[3,"المسار العام",3,30,"النشاط",0,0,0,0,0,30],[3,"المسار العام",3,30,"بحث",0,0,0,0,0,30],[3,"المسار العام",3,30,"ت رقمية",0,0,0,0,1,29],[3,"المسار العام",3,0,"ت مستدامة",0,0,0,0,0,0],[3,"المسار العام",3,30,"رياضيات",0,0,0,0,4,26],[3,"المسار العام",3,30,"ع الأرض",0,0,0,5,8,17],[3,"المسار العام",3,30,"فيزياء",0,0,0,12,16,2],[3,"المسار العام",3,30,"كيمياء",0,2,3,7,8,10],[3,"المسار العام",4,0,"إبداعية",0,0,0,0,0,0],[3,"المسار العام",4,29,"إنجليزي",0,5,9,4,1,10],[3,"المسار العام",4,29,"التربية الصحية والبدنية",0,0,0,0,0,29],[3,"المسار العام",4,29,"النشاط",0,0,0,0,0,29],[3,"المسار العام",4,29,"بحث",0,0,0,0,0,29],[3,"المسار العام",4,29,"ت رقمية",0,0,0,0,0,29],[3,"المسار العام",4,29,"ت مستدامة",0,0,0,0,0,29],[3,"المسار العام",4,29,"رياضيات",0,0,0,2,4,23],[3,"المسار العام",4,29,"ع الأرض",0,0,2,6,8,13],[3,"المسار العام",4,29,"فيزياء",0,0,0,5,15,9],[3,"المسار العام",4,29,"كيمياء",0,7,2,7,5,8],[3,"المسار العام",5,0,"إبداعية",0,0,0,0,0,0],[3,"المسار العام",5,33,"إنجليزي",0,11,4,7,5,6],[3,"المسار العام",5,33,"التربية الصحية والبدنية",0,0,0,0,0,33],[3,"المسار العام",5,33,"النشاط",0,0,0,0,0,33],[3,"المسار العام",5,33,"بحث",0,0,0,0,0,33],[3,"المسار العام",5,33,"ت رقمية",0,0,0,0,1,32],[3,"المسار العام",5,33,"ت مستدامة",0,0,0,0,0,33],[3,"المسار العام",5,33,"رياضيات",0,0,1,9,13,10],[3,"المسار العام",5,33,"ع الأرض",0,0,0,6,9,18],[3,"المسار العام",5,33,"فيزياء",0,5,2,5,9,12],[3,"المسار العام",5,33,"كيمياء",0,13,2,5,3,10],[3,"مسار الحاسب والهندسة",1,17,"أ.سيبراني",0,0,0,0,0,17],[3,"مسار الحاسب والهندسة",1,17,"إنجليزي",0,4,2,7,2,2],[3,"مسار الحاسب والهندسة",1,17,"النشاط",0,0,0,0,0,17],[3,"مسار الحاسب والهندسة",1,17,"بحث",0,0,0,0,0,17],[3,"مسار الحاسب والهندسة",1,17,"ت هندسي",0,0,0,0,0,17],[3,"مسار الحاسب والهندسة",1,17,"د.أدبية",0,0,0,1,0,16],[3,"مسار الحاسب والهندسة",1,17,"ذ اصطناعي",0,0,0,0,1,16],[3,"مسار الحاسب والهندسة",1,17,"رياضيات",0,0,0,12,3,2],[3,"مسار الحاسب والهندسة",1,17,"ع الأرض",0,0,1,6,4,6],[3,"مسار الحاسب والهندسة",1,17,"فيزياء",1,0,0,15,1,0],[3,"مسار الحاسب والهندسة",1,17,"كيمياء",0,7,2,1,4,3]];
+const GRADES = ['راسب','ضعيف','مقبول','جيد','جيد جداً','ممتاز'];
+const GCOL = ['#C0392B','#E67E22','#F1C40F','#8CC5AE','#3E8E6E','#1F5F4A'];
+const CORE = ['إنجليزي','كيمياء','فيزياء','رياضيات','أحياء','ك لغوية','قرآن/تفسير','هندسة','ع الأرض'];
+const HM_SUBJ = ['إنجليزي','كيمياء','فيزياء','رياضيات','أحياء','ك لغوية','قرآن/تفسير','هندسة'];
+const GN = {1:'أول',2:'ثاني',3:'ثالث'};
+const TR = {'السنة المشتركة':'','المسار العام':'عام','مسار الحاسب والهندسة':'حاسب'};
+const TRACKS = [
+  {k:'all',l:'الكل'},{k:'1|السنة المشتركة',l:'أول ثانوي'},{k:'2|المسار العام',l:'ثاني – عام'},
+  {k:'2|مسار الحاسب والهندسة',l:'ثاني – حاسب'},{k:'3|المسار العام',l:'ثالث – عام'},{k:'3|مسار الحاسب والهندسة',l:'ثالث – حاسب'}];
+const STRUG = {all:[126,20],'1|السنة المشتركة':[42,6],'2|المسار العام':[31,7],'2|مسار الحاسب والهندسة':[1,1],'3|المسار العام':[44,5],'3|مسار الحاسب والهندسة':[8,1]};
+const data = RAW.map(r=>({g:r[0],tr:r[1],sec:r[2],n:r[3],s:r[4],c:r.slice(5,11),tk:r[0]+'|'+r[1],
+  sl:(GN[r[0]]+(TR[r[1]]?' '+TR[r[1]]:'')+' – '+r[2])})).filter(r=>r.c.reduce((a,b)=>a+b,0)>0);
+
+const F = {track:'all', sec:'all', group:'all', subj:'all'};
+const css = n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+Chart.defaults.font.family = '"IBM Plex Sans Arabic", Tahoma, sans-serif';
+Chart.defaults.font.size = 12;
+
+function rows(ignoreSubj){
+  return data.filter(r=>(F.track==='all'||r.tk===F.track)&&(F.sec==='all'||r.sl===F.sec)
+    &&(F.group==='all'||CORE.includes(r.s))&&(ignoreSubj||F.subj==='all'||r.s===F.subj));
+}
+const sum=a=>a.reduce((x,y)=>x+y,0);
+const pct=(a,b)=>b?a/b*100:0;
+const fmt=(v,d=1)=>v.toFixed(d)+'%';
+
+/* ---------- slicers ---------- */
+function chipGroup(el,items,key){
+  el.innerHTML='';
+  items.forEach(it=>{const b=document.createElement('button');b.className='chip';b.textContent=it.l;
+    b.setAttribute('aria-pressed',F[key]===it.k);b.onclick=()=>{F[key]=it.k;if(key==='track'){F.sec='all';}render();};el.appendChild(b);});
+}
+function fillSelects(){
+  const secs=[...new Set(data.filter(r=>F.track==='all'||r.tk===F.track).map(r=>r.sl))];
+  const fs=document.getElementById('fSec');fs.innerHTML='<option value="all">جميع الشعب</option>'+secs.map(s=>`<option ${F.sec===s?'selected':''}>${s}</option>`).join('');
+  const subs=[...new Set(rows(true).map(r=>r.s))];
+  if(F.subj!=='all'&&!subs.includes(F.subj))F.subj='all';
+  const fj=document.getElementById('fSubj');fj.innerHTML='<option value="all">جميع المواد</option>'+subs.map(s=>`<option ${F.subj===s?'selected':''}>${s}</option>`).join('');
+}
+document.getElementById('fSec').onchange=e=>{F.sec=e.target.value;render();};
+document.getElementById('fSubj').onchange=e=>{F.subj=e.target.value;render();};
+document.getElementById('reset').onclick=()=>{Object.assign(F,{track:'all',sec:'all',group:'all',subj:'all'});render();};
+
+/* ---------- charts ---------- */
+const charts={};
+function mk(id,cfg){if(charts[id]){charts[id].destroy();}charts[id]=new Chart(document.getElementById(id),cfg);}
+const gridC=()=>css('--line'); const inkC=()=>css('--ink');
+
+function render(){
+  chipGroup(document.getElementById('fGrade'),TRACKS,'track');
+  chipGroup(document.getElementById('fGroup'),[{k:'all',l:'جميع المواد'},{k:'core',l:'المواد التنافسية'}],'group');
+  fillSelects();
+  const R=rows(false);
+  const tot=GRADES.map((_,i)=>sum(R.map(r=>r.c[i])));
+  const N=sum(tot); const bad=tot[0]+tot[1];
+  const studs=sum([...new Map(R.map(r=>[r.sl,r.n])).values()]);
+  const st=(F.sec==='all'&&F.subj==='all'&&F.group==='all')?STRUG[F.track]:null;
+  document.getElementById('kpis').innerHTML=[
+    ['kpi',studs.toLocaleString('en-US'),'طالبًا ضمن التصفية'],
+    ['kpi',N.toLocaleString('en-US'),'نتيجة (طالب × مادة)'],
+    ['kpi alert',fmt(pct(bad,N)),`نسبة التعثر · ${bad} نتيجة`],
+    ['kpi gold',st?st[0]:'—',st?`طالبًا متعثرًا · منهم ${st[1]} في 3 مواد فأكثر`:'طلاب متعثرون (متاح دون تصفية مادة/شعبة)'],
+    ['kpi',fmt(pct(tot[5],N)),'نسبة تقدير ممتاز']
+  ].map(k=>`<div class="${k[0]}"><div class="v">${k[1]}</div><div class="l">${k[2]}</div></div>`).join('');
+
+  // struggle by subject (ignores subject filter, highlights selected)
+  const RS=rows(true); const bys={};
+  RS.forEach(r=>{bys[r.s]=bys[r.s]||[0,0];bys[r.s][0]+=r.c[0]+r.c[1];bys[r.s][1]+=sum(r.c);});
+  let subj=Object.entries(bys).map(([s,v])=>({s,p:pct(v[0],v[1]),b:v[0]})).sort((a,b)=>b.p-a.p);
+  if(F.group==='all')subj=subj.filter(x=>x.p>0||CORE.includes(x.s));
+  mk('cStr',{type:'bar',data:{labels:subj.map(x=>x.s),datasets:[{data:subj.map(x=>+x.p.toFixed(1)),
+      backgroundColor:subj.map(x=>F.subj==='all'||F.subj===x.s?(x.p>=10?'#C0392B':x.p>=5?'#E67E22':'#3E8E6E'):'#C9D6D0'),borderRadius:2}]},
+    options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.raw}% · ${subj[c.dataIndex].b} نتيجة`}}},
+      scales:{x:{position:'top',ticks:{callback:v=>v+'%',color:inkC()},grid:{color:gridC()}},y:{position:'right',ticks:{color:inkC()},grid:{display:false}}},
+      onClick:(e,el)=>{if(el.length){const s=subj[el[0].index].s;F.subj=F.subj===s?'all':s;render();}}}});
+
+  // distribution doughnut
+  document.getElementById('distHint').textContent=F.subj==='all'?'جميع النتائج ضمن التصفية الحالية':'مادة '+F.subj;
+  mk('cDist',{type:'doughnut',data:{labels:GRADES,datasets:[{data:tot,backgroundColor:GCOL,borderColor:css('--card'),borderWidth:2}]},
+    options:{maintainAspectRatio:false,cutout:'58%',plugins:{legend:{position:'bottom',rtl:true,labels:{color:inkC(),boxWidth:12}},
+      tooltip:{callbacks:{label:c=>` ${c.label}: ${c.raw} (${fmt(pct(c.raw,N))})`}}}}});
+
+  // stacked 100% by subject
+  const ss=subj.map(x=>x.s); const mat=ss.map(s=>{const t=GRADES.map((_,i)=>sum(RS.filter(r=>r.s===s).map(r=>r.c[i])));const n=sum(t);return t.map(v=>pct(v,n));});
+  mk('cStack',{type:'bar',data:{labels:ss,datasets:GRADES.map((g,i)=>({label:g,data:mat.map(m=>+m[i].toFixed(1)),backgroundColor:GCOL[i]}))},
+    options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{position:'bottom',rtl:true,labels:{color:inkC(),boxWidth:12}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+      scales:{x:{stacked:true,max:100,position:'top',ticks:{callback:v=>v+'%',color:inkC()},grid:{color:gridC()}},y:{stacked:true,position:'right',ticks:{color:inkC()},grid:{display:false}}},
+      onClick:(e,el)=>{if(el.length){const s=ss[el[0].index];F.subj=F.subj===s?'all':s;render();}}}});
+
+  // heatmap
+  const secs=[...new Set(data.filter(r=>F.track==='all'||r.tk===F.track).map(r=>r.sl))];
+  const col=v=>v===null?'transparent':v===0?'#FFFFFF':v<=10?'#FDF3D1':v<=20?'#F9DC8B':v<=30?'#F2A65A':'#D9534F';
+  let h='<tr><th>الشعبة</th>'+HM_SUBJ.map(s=>`<th>${s.replace('قرآن/تفسير','قرآن').replace('ك لغوية','لغوية')}</th>`).join('')+'<th>الكل</th></tr>';
+  secs.forEach(sl=>{
+    const rr=data.filter(r=>r.sl===sl);
+    const all=rr.reduce((a,r)=>[a[0]+r.c[0]+r.c[1],a[1]+sum(r.c)],[0,0]);
+    h+=`<tr class="${F.sec===sl?'sel':''}"><td class="name">${sl}</td>`+HM_SUBJ.map(s=>{const r=rr.find(x=>x.s===s);if(!r)return '<td style="color:var(--muted)">–</td>';
+      const v=Math.round(pct(r.c[0]+r.c[1],sum(r.c)));const dark=v>30;
+      return `<td class="cell" tabindex="0" data-sec="${sl}" data-s="${s}" style="background:${col(v)};color:${dark?'#fff':'#1C2A25'};${F.subj===s&&F.sec===sl?'outline:2px solid #B08D57':''}">${v?v+'%':'0'}</td>`;}).join('')
+      +`<td style="font-weight:700">${fmt(pct(all[0],all[1]))}</td></tr>`;
+  });
+  const hm=document.getElementById('hm');hm.innerHTML=h;
+  hm.querySelectorAll('td.cell').forEach(td=>{const go=()=>{const same=F.sec===td.dataset.sec&&F.subj===td.dataset.s;F.sec=same?'all':td.dataset.sec;F.subj=same?'all':td.dataset.s;render();};td.onclick=go;td.onkeydown=e=>{if(e.key==='Enter')go();};});
+
+  // top sections
+  const bySec={};R.forEach(r=>{bySec[r.sl]=bySec[r.sl]||[0,0];bySec[r.sl][0]+=r.c[0]+r.c[1];bySec[r.sl][1]+=sum(r.c);});
+  const ts=Object.entries(bySec).map(([s,v])=>({s,p:pct(v[0],v[1]),b:v[0]})).filter(x=>x.b>0).sort((a,b)=>b.p-a.p).slice(0,8);
+  const mx=Math.max(...ts.map(x=>x.p),1);
+  document.getElementById('topSec').innerHTML='<tr><th>الشعبة</th><th>النتائج المتعثرة</th><th style="width:40%">نسبة التعثر</th></tr>'+
+    (ts.length?ts.map(x=>`<tr><td>${x.s}</td><td>${x.b}</td><td><div style="display:flex;gap:8px;align-items:center"><div class="bar" style="flex:1"><b style="width:${x.p/mx*100}%"></b></div><span>${fmt(x.p)}</span></div></td></tr>`).join('')
+      :'<tr><td colspan="3">لا توجد نتائج متعثرة ضمن هذه التصفية.</td></tr>');
+}
+
+/* ---------- page 2 & 3 (static data) ---------- */
+function staticCharts(){
+  const lv=['مرتفع','متوسط','منخفض','منخفض جدًا'], lc=['#1F5F4A','#8CC5AE','#E67E22','#C0392B'];
+  const L={'التحصيلي – الحالي':[27.9,20.2,30.7,21.2],'التحصيلي – المستهدف':[32,25,28,15],'القدرات – الحالي':[30.6,27.0,27.8,14.7],'القدرات – المستهدف':[35,30,25,10]};
+  mk('cLv',{type:'bar',data:{labels:Object.keys(L),datasets:lv.map((l,i)=>({label:l,data:Object.values(L).map(v=>v[i]),backgroundColor:lc[i]}))},
+    options:{indexAxis:'y',maintainAspectRatio:false,plugins:{legend:{position:'bottom',rtl:true,labels:{color:inkC(),boxWidth:12}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+      scales:{x:{stacked:true,max:100,position:'top',ticks:{callback:v=>v+'%',color:inkC()},grid:{color:gridC()}},y:{stacked:true,position:'right',ticks:{color:inkC()},grid:{display:false}}}}});
+  mk('cAvg',{type:'bar',data:{labels:['التحصيلي','القدرات العامة'],datasets:[
+      {label:'المدرسة',data:[67,68.5],backgroundColor:'#1F5F4A'},{label:'المملكة',data:[62.39,65.72],backgroundColor:'#A9C3B8'},{label:'المستهدف',data:[70,71],backgroundColor:'#B08D57'}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom',rtl:true,labels:{color:inkC(),boxWidth:12}}},scales:{y:{min:50,max:80,ticks:{color:inkC()},grid:{color:gridC()}},x:{ticks:{color:inkC()},grid:{display:false}}}}});
+  const B=[['3-1-1-1 الاختبارات التحصيلية',78.14,77.98,90],['3-1-1-2 اختبارات القدرات العامة',80.37,80.22,85],['معيار التحصيل التعليمي',78.75,78.75,90],
+    ['مجال نواتج التعلم',81.25,81.5,90],['2-1-1-3 تنوع استراتيجيات التدريس',74.25,90.5,85],['2-1-2-1 تنوع أدوات التقويم',76.5,88.25,87],
+    ['2-1-1-7 مهارات التفكير العليا',77.5,87.5,88],['2-1-1-10 دافعية التعلم',77.25,89.5,85]];
+  const lo=50,sc=v=>(v-lo)/(100-lo)*100;
+  document.getElementById('bullets').innerHTML=B.map(b=>{const gap=(b[3]-b[1]).toFixed(2);
+    return `<div class="bullet"><div class="t"><span>${b[0]}</span><span>${b[1]}% ← ${b[3]}% <span class="pill ${b[1]>=b[3]?'ok':'mid'}">${b[1]>=b[3]?'تحقق':'الفجوة '+gap}</span></span></div>
+    <div class="track"><div class="fill" style="width:${sc(b[1])}%"></div><div class="self" style="inset-inline-start:${sc(b[2])}%" title="التقويم الذاتي ${b[2]}%"></div><div class="tgt" style="inset-inline-start:${sc(b[3])}%" title="المستهدف ${b[3]}%"></div></div></div>`;}).join('')
+    +'<p class="note">المقياس من 50% إلى 100%.</p>';
+  const T=[['التعثر العام',4.3,2.5],['الإنجليزي',12.6,8],['الكيمياء',10.7,6],['الفيزياء',7.5,5],['الرياضيات',6.6,4]];
+  mk('cTgt',{type:'bar',data:{labels:T.map(t=>t[0]),datasets:[{label:'الوضع الحالي',data:T.map(t=>t[1]),backgroundColor:'#C0392B'},{label:'المستهدف',data:T.map(t=>t[2]),backgroundColor:'#1F5F4A'}]},
+    options:{maintainAspectRatio:false,plugins:{legend:{position:'bottom',rtl:true,labels:{color:inkC(),boxWidth:12}},tooltip:{callbacks:{label:c=>` ${c.dataset.label}: ${c.raw}%`}}},
+      scales:{y:{ticks:{callback:v=>v+'%',color:inkC()},grid:{color:gridC()}},x:{ticks:{color:inkC()},grid:{display:false}}}}});
+}
+
+/* ---------- page 4: impact ---------- */
+const IMP=[['نسبة التعثر العامة',4.3,2.5,'down','%'],['التعثر في الإنجليزي',12.6,8,'down','%'],['التعثر في الكيمياء',10.7,6,'down','%'],
+  ['التعثر في الفيزياء',7.5,5,'down','%'],['التعثر في الرياضيات',6.6,4,'down','%'],['طلاب متعثرون في 3 مواد فأكثر',20,10,'down',''],
+  ['نتائج «راسب»',20,0,'down',''],['مؤشر التحصيلي 3-1-1-1',78.14,90,'up','%'],['مؤشر القدرات 3-1-1-2',80.37,85,'up','%'],
+  ['متوسط درجات التحصيلي',67,70,'up',''],['متوسط درجات القدرات',68.5,71,'up',''],['تنوع استراتيجيات التدريس 2-1-1-3',74.25,85,'up','%'],
+  ['رضا أولياء الأمور عن نواتج التعلم',89,92,'up','%']];
+let saved={};try{saved=JSON.parse(localStorage.getItem('ohod-impact')||'{}');}catch(e){saved={};}
+function impact(){
+  const t=document.getElementById('impact');
+  t.innerHTML='<tr><th>المؤشر</th><th>خط الأساس</th><th>المستهدف</th><th>النتيجة بعد التنفيذ</th><th>نسبة التغير</th><th>مدى التحقق</th></tr>'+
+   IMP.map((r,i)=>`<tr><td>${r[0]}</td><td>${r[1]}${r[4]}</td><td>${r[2]}${r[4]}</td><td><input type="number" step="0.01" data-i="${i}" value="${saved[i]??''}" aria-label="النتيجة بعد التنفيذ – ${r[0]}"></td><td id="ch${i}">—</td><td id="st${i}"><span class="pill na">بانتظار القياس</span></td></tr>`).join('');
+  t.querySelectorAll('input').forEach(inp=>{inp.oninput=()=>{const i=+inp.dataset.i;saved[i]=inp.value;try{localStorage.setItem('ohod-impact',JSON.stringify(saved));}catch(e){}calc(i);};calc(+inp.dataset.i);});
+}
+function calc(i){
+  const r=IMP[i],v=parseFloat(saved[i]);const ch=document.getElementById('ch'+i),st=document.getElementById('st'+i);
+  if(isNaN(v)){ch.textContent='—';st.innerHTML='<span class="pill na">بانتظار القياس</span>';return;}
+  const c=r[1]?(v-r[1])/r[1]*100:0; ch.textContent=(c>0?'▲ ':c<0?'▼ ':'')+Math.abs(c).toFixed(1)+'%';
+  const better=r[3]==='down'?v<r[1]:v>r[1], hit=r[3]==='down'?v<=r[2]:v>=r[2];
+  st.innerHTML=hit?'<span class="pill ok">تحقق</span>':better?'<span class="pill mid">تحقق جزئيًا</span>':'<span class="pill no">لم يتحقق</span>';
+}
+
+/* ---------- pages ---------- */
+document.querySelectorAll('nav.pages button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('nav.pages button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  document.querySelectorAll('.page').forEach(p=>p.classList.toggle('on',p.id===b.dataset.p));
+  document.getElementById('slicers').style.display=b.dataset.p==='p1'?'':'none';
+  document.querySelector('.wrap').style.gridTemplateColumns=b.dataset.p==='p1'?'':'1fr';
+  if(b.dataset.p!=='p1')staticCharts();
+});
+render(); impact();
+</script>
+</body>
+</html>
